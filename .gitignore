@@ -23,6 +23,15 @@
 # misc
 .DS_Store
 *.pem
+.idea/
+.vscode/
+.cache/
+.turbo/
+
+# logs
+*.log
+*.out
+*.err
 
 # debug
 npm-debug.log*
