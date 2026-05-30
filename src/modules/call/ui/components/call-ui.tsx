@@ -5,10 +5,11 @@ import { CallActive } from "./call-active";
 import { CallEnded } from "./call-ended";
 
 interface Props {
+    meetingId: string;
     meetingName: string;
 };
 
-export const CallUI = ({ meetingName }: Props) => {
+export const CallUI = ({ meetingId, meetingName }: Props) => {
     const call = useCall();
     const { useCallCallingState } = useCallStateHooks();
     const callingState = useCallCallingState();
@@ -45,11 +46,11 @@ export const CallUI = ({ meetingName }: Props) => {
     };
 
     return (
-        <StreamTheme className="flex h-full min-h-screen w-full flex-col overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(16,18,19,0.96),_rgba(8,10,12,1))] text-white">
+        <StreamTheme className="flex h-full min-h-screen w-full flex-col overflow-hidden bg-[radial-gradient(circle_at_top,rgba(16,18,19,0.96),rgba(8,10,12,1))] text-white">
              {show === "ended" || callingState === CallingState.LEFT ? (
                 <CallEnded />
             ) : show === "call" || callingState === CallingState.JOINED || callingState === CallingState.JOINING ? (
-                <CallActive onLeave={handleLeave} meetingName={meetingName} />
+                <CallActive meetingId={meetingId} onLeave={handleLeave} meetingName={meetingName} />
             ) : (
                 <CallLobby onJoin={handleJoin} isJoining={isJoining} />
             )}

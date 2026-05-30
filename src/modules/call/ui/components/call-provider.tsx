@@ -15,7 +15,7 @@ import { CallConnect } from "./call-connect";
     const {data,isPending}=authClient.useSession();
     if(!data || isPending){
         return (
-            <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(83,116,108,0.22),_rgba(8,10,12,1))]">
+            <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,rgba(83,116,108,0.22),rgba(8,10,12,1))]">
                 <LoaderIcon className="size-6 animate-spin text-white" /> 
             </div>
         )

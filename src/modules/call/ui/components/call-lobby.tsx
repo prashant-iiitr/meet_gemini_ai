@@ -47,7 +47,7 @@ export const CallLobby = ({ onJoin, isJoining }: Props) => {
     const hasBrowserMediaPermission = hasCameraPermission && hasMicPermission;
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(83,116,108,0.26),_rgba(8,10,12,1))] px-4 py-8">
+        <div className="flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,rgba(83,116,108,0.26),rgba(8,10,12,1))] px-4 py-8">
             <div className="flex w-full flex-1 items-center justify-center">
                 <div className="flex w-full max-w-md flex-col items-center justify-center gap-y-6 rounded-3xl border border-white/10 bg-background/95 p-8 shadow-2xl shadow-black/20 backdrop-blur md:p-10">
                     <div className="flex flex-col gap-y-2 text-center">

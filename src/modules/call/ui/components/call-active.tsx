@@ -2,15 +2,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { CallControls, CallParticipantsList, SpeakerLayout } from "@stream-io/video-react-sdk";
+import { MeetingAssistantPanel } from "@/modules/meetings/ui/components/meeting-assistant-panel";
 
 
 
 interface Props {
     onLeave: () => void;
+    meetingId: string;
     meetingName: string;
 }
 
-export const CallActive = ({ onLeave, meetingName }: Props) => {
+export const CallActive = ({ onLeave, meetingId, meetingName }: Props) => {
     const [showParticipants, setShowParticipants] = useState(true);
 
     return (
@@ -25,15 +27,20 @@ export const CallActive = ({ onLeave, meetingName }: Props) => {
                 </h4>
                 </div>
             </div>
-            <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
                 <div className="min-h-0 overflow-hidden rounded-3xl border border-white/10 bg-black/20 shadow-2xl shadow-black/30 backdrop-blur">
                     <SpeakerLayout />
                 </div>
-                {showParticipants ? (
-                    <aside className="min-h-0 overflow-hidden rounded-3xl border border-white/10 bg-[#101213]/90 shadow-lg shadow-black/20 backdrop-blur">
-                        <CallParticipantsList onClose={() => setShowParticipants(false)} />
-                    </aside>
-                ) : null}
+                <aside className="flex min-h-0 flex-col gap-4 overflow-hidden">
+                    {showParticipants ? (
+                        <div className="min-h-0 overflow-hidden rounded-3xl border border-white/10 bg-[#101213]/90 shadow-lg shadow-black/20 backdrop-blur">
+                            <CallParticipantsList onClose={() => setShowParticipants(false)} />
+                        </div>
+                    ) : null}
+                    <div className="min-h-0 flex-1 overflow-hidden rounded-3xl border border-white/10 bg-[#101213]/90 shadow-lg shadow-black/20 backdrop-blur">
+                        <MeetingAssistantPanel meetingId={meetingId} meetingName={meetingName} className="h-full min-h-[520px]" />
+                    </div>
+                </aside>
             </div>
             <div className="rounded-full border border-white/10 bg-[#101213]/90 p-4 shadow-lg shadow-black/20 backdrop-blur" >
                 <CallControls onLeave={onLeave} />

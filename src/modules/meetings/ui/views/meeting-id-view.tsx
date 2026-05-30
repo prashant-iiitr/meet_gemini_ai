@@ -14,6 +14,7 @@ import { UpcomingState } from "../components/upcoming-state";
 import { ActiveState } from "../components/active-state";
 import { CancelledState } from "../components/cancelled-state";
 import { ProcessingState } from "../components/processing-state";
+import { MeetingAssistantPanel } from "../components/meeting-assistant-panel";
 
 
 interface Props { meetingId: string };
@@ -83,6 +84,8 @@ export const MeetingIdView = ({ meetingId }: Props) => {
     const isProcessing = data.status === "processing";
 
 
+    const showAssistantPanel = isActive || isCompleted;
+
     return (
         <>
             <RemoveConfirmation />
@@ -94,11 +97,30 @@ export const MeetingIdView = ({ meetingId }: Props) => {
                     onEdit={() => setUpdateMeetingDialogOpen(true)}
                     onRemove={handleRemoveMeeting}
                 />
-                {isCancelled && <CancelledState />}
-                {isProcessing && <ProcessingState />}
-                {isCompleted && <div>Completed</div>}
-                {isUpcoming && <UpcomingState meetingId={meetingId} onCancelMeeting={() => { }} isCancelling={false} />}
-                {isActive && <ActiveState meetingId={meetingId} />}
+                {showAssistantPanel ? (
+                    <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+                        <div className="flex flex-col gap-y-4">
+                            {isCancelled && <CancelledState />}
+                            {isProcessing && <ProcessingState />}
+                            {isCompleted && <div>Completed</div>}
+                            {isUpcoming && <UpcomingState meetingId={meetingId} onCancelMeeting={() => { }} isCancelling={false} />}
+                            {isActive && <ActiveState meetingId={meetingId} />}
+                        </div>
+                        <MeetingAssistantPanel
+                            meetingId={meetingId}
+                            meetingName={meeting.name ?? 'Untitled Meeting'}
+                            className="min-h-160"
+                        />
+                    </div>
+                ) : (
+                    <>
+                        {isCancelled && <CancelledState />}
+                        {isProcessing && <ProcessingState />}
+                        {isCompleted && <div>Completed</div>}
+                        {isUpcoming && <UpcomingState meetingId={meetingId} onCancelMeeting={() => { }} isCancelling={false} />}
+                        {isActive && <ActiveState meetingId={meetingId} />}
+                    </>
+                )}
             </div>
         </>
     );
