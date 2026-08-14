@@ -55,27 +55,64 @@ async function loadMeetingTranscript(transcriptUrl?: string | null) {
   }
 
   const contentType = response.headers.get("content-type") ?? "";
+  const rawText = await response.text();
+  const trimmedText = rawText.trim();
 
-  if (contentType.includes("application/json")) {
-    const data = (await response.json()) as {
-      transcript?: string;
-      text?: string;
-      data?: Array<{ text?: string; words?: Array<{ text?: string }> }>;
-    };
-
-    const transcriptText =
-      data.transcript ??
-      data.text ??
-      data.data
-        ?.flatMap((segment) => [segment.text, ...(segment.words?.map((word) => word.text) ?? [])])
-        .filter((value): value is string => typeof value === "string" && Boolean(value.trim()))
-        .join("\n");
-
-    return normalizeTranscriptText(transcriptText ?? "");
+  if (!trimmedText) {
+    return "";
   }
 
-  const transcriptText = await response.text();
-  return normalizeTranscriptText(transcriptText);
+  if (contentType.includes("application/json") || contentType.includes("application/x-ndjson")) {
+    const jsonlLines = trimmedText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const transcriptLines: string[] = [];
+
+    for (const line of jsonlLines) {
+      try {
+        const item = JSON.parse(line) as { text?: unknown; speaker_id?: unknown };
+
+        if (typeof item.text === "string" && item.text.trim()) {
+          const speakerPrefix =
+            typeof item.speaker_id === "string" && item.speaker_id.trim()
+              ? `${item.speaker_id.trim()}: `
+              : "";
+
+          transcriptLines.push(`${speakerPrefix}${item.text.trim()}`);
+        }
+      } catch {
+        // Ignore malformed JSONL lines and continue parsing the rest.
+      }
+    }
+
+    if (transcriptLines.length > 0) {
+      return normalizeTranscriptText(transcriptLines.join("\n"));
+    }
+
+    try {
+      const data = JSON.parse(trimmedText) as {
+        transcript?: string;
+        text?: string;
+        data?: Array<{ text?: string; words?: Array<{ text?: string }> }>;
+      };
+
+      const transcriptText =
+        data.transcript ??
+        data.text ??
+        data.data
+          ?.flatMap((segment) => [segment.text, ...(segment.words?.map((word) => word.text) ?? [])])
+          .filter((value): value is string => typeof value === "string" && Boolean(value.trim()))
+          .join("\n");
+
+      return normalizeTranscriptText(transcriptText ?? "");
+    } catch {
+      return normalizeTranscriptText(trimmedText);
+    }
+  }
+
+  return normalizeTranscriptText(trimmedText);
 }
 
 function toAssistantMessageList(messages: ChatMessage[], assistantText: string): ChatMessage[] {
