@@ -26,6 +26,58 @@ const chatRequestSchema = z.object({
   ).default([]),
 });
 
+function normalizeTranscriptText(rawTranscript: string) {
+  const cleanedLines = rawTranscript
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/^WEBVTT$/i.test(line))
+    .filter((line) => !/^\d+$/.test(line))
+    .filter((line) => !/^\d{2}:\d{2}:\d{2}\.\d{3}\s+-->\s+\d{2}:\d{2}:\d{2}\.\d{3}/.test(line))
+    .filter((line) => !/^\d{2}:\d{2}\.\d{3}\s+-->\s+\d{2}:\d{2}\.\d{3}/.test(line));
+
+  return cleanedLines.join("\n").trim();
+}
+
+async function loadMeetingTranscript(transcriptUrl?: string | null) {
+  const resolvedTranscriptUrl = transcriptUrl?.trim();
+
+  if (!resolvedTranscriptUrl) {
+    return null;
+  }
+
+  const response = await fetch(resolvedTranscriptUrl, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("Unable to load the meeting transcript from Stream");
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    const data = (await response.json()) as {
+      transcript?: string;
+      text?: string;
+      data?: Array<{ text?: string; words?: Array<{ text?: string }> }>;
+    };
+
+    const transcriptText =
+      data.transcript ??
+      data.text ??
+      data.data
+        ?.flatMap((segment) => [segment.text, ...(segment.words?.map((word) => word.text) ?? [])])
+        .filter((value): value is string => typeof value === "string" && Boolean(value.trim()))
+        .join("\n");
+
+    return normalizeTranscriptText(transcriptText ?? "");
+  }
+
+  const transcriptText = await response.text();
+  return normalizeTranscriptText(transcriptText);
+}
+
 function toAssistantMessageList(messages: ChatMessage[], assistantText: string): ChatMessage[] {
   const assistantMessage: ChatMessage = {
     role: "assistant",
@@ -77,13 +129,20 @@ export async function POST(req: NextRequest) {
   }
 
   const resolvedMeetingName = meetingName?.trim() || meeting.name;
-  const meetingContext = meeting.summary?.trim() || undefined;
+  const meetingTranscript = await loadMeetingTranscript(meeting.transcriptUrl);
+
+  if (!meetingTranscript) {
+    return NextResponse.json(
+      { error: "Meeting transcript is not available yet. Please try again after transcription finishes." },
+      { status: 409 }
+    );
+  }
 
   try {
     if (mode === "summary" || mode === "discussion-points") {
       const summary = await generateMeetingSummary({
         meetingName: resolvedMeetingName,
-        meetingContext,
+        meetingContext: meetingTranscript,
         messages: normalizedMessages,
       });
 
@@ -100,7 +159,7 @@ export async function POST(req: NextRequest) {
     if (mode === "action-items") {
       const actionItems = await generateActionItems({
         meetingName: resolvedMeetingName,
-        meetingContext,
+        meetingContext: meetingTranscript,
         messages: normalizedMessages,
       });
 
@@ -128,7 +187,7 @@ export async function POST(req: NextRequest) {
 
     const response = await answerMeetingQuestion({
       meetingName: resolvedMeetingName,
-      meetingContext,
+      meetingContext: meetingTranscript,
       question,
       messages: normalizedMessages,
     });

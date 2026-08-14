@@ -1,4 +1,9 @@
-import { CallSessionEndedEvent, CallSessionStartedEvent } from "@stream-io/node-sdk";
+import {
+    CallSessionEndedEvent,
+    CallSessionStartedEvent,
+    CallTranscriptionFailedEvent,
+    CallTranscriptionReadyEvent,
+} from "@stream-io/node-sdk";
 import { and, eq, not } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
@@ -7,6 +12,10 @@ import { streamVideo } from "@/lib/stream-video";
 import { MeetingStatus } from "@/modules/meetings/types";
 
 const activeAgentConnections = new Map<string, { disconnect: () => void }>();
+
+function getMeetingIdFromCallCid(callCid: string) {
+    return callCid.split(":").at(-1);
+}
 
 function verifySignatureWithSDK(body: string, signature: string): boolean {
     return streamVideo.verifyWebhook(body, signature);
@@ -175,6 +184,32 @@ export async function POST(req: NextRequest) {
             status: MeetingStatus.Completed,
             endedAt: new Date(),
         }).where(eq(meetings.id, meetingId));
+    }
+    else if (eventType === "call.transcription_ready") {
+        const event = payload as CallTranscriptionReadyEvent;
+        const meetingId = getMeetingIdFromCallCid(event.call_cid);
+
+        if (!meetingId) {
+            return NextResponse.json({ error: "Missing meetingId" }, { status: 400 });
+        }
+
+        const transcriptUrl = event.call_transcription?.url?.trim();
+
+        if (!transcriptUrl) {
+            return NextResponse.json({ error: "Missing transcript URL" }, { status: 400 });
+        }
+
+        await db.update(meetings).set({
+            transcriptUrl,
+        }).where(eq(meetings.id, meetingId));
+    }
+    else if (eventType === "call.transcription_failed") {
+        const event = payload as CallTranscriptionFailedEvent;
+        console.error("Stream transcription failed", JSON.stringify({
+            callCid: event.call_cid,
+            egressId: event.egress_id,
+            error: event.error,
+        }, null, 2));
     }
     return NextResponse.json({ status: "ok" });
 
