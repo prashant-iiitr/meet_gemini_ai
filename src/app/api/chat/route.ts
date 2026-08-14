@@ -26,8 +26,13 @@ const chatRequestSchema = z.object({
   ).default([]),
 });
 
-function toAssistantMessageList(messages: ChatMessage[], assistantText: string) {
-  return [...messages, { role: "assistant", content: assistantText }];
+function toAssistantMessageList(messages: ChatMessage[], assistantText: string): ChatMessage[] {
+  const assistantMessage: ChatMessage = {
+    role: "assistant",
+    content: assistantText,
+  };
+
+  return [...messages, assistantMessage];
 }
 
 export async function POST(req: NextRequest) {
@@ -58,7 +63,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { meetingId, meetingName, mode, message } = parsed.data;
-  const normalizedMessages = parsed.data.messages
+  const normalizedMessages: ChatMessage[] = parsed.data.messages
     .filter((entry) => Boolean(entry.content.trim()))
     .slice(-12);
 
